@@ -1,0 +1,5 @@
+{
+  "name": "NexusTrade Bot Dashboard",
+  "description": "A professional-grade trading bot platform with real-time strategy execution, SQLite trade logging, and performance analytics.",
+  "requestFramePermissions": []
+}

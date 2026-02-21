@@ -1,0 +1,13 @@
+{
+    "api_key": "YOUR_EXCHANGE_API_KEY",
+    "api_secret": "YOUR_EXCHANGE_SECRET",
+    "interval": 5,
+    "symbol": "BTC/USD",
+    "trading_enabled": true,
+    "mt5": {
+        "login": 12345678,
+        "password": "YOUR_PASSWORD",
+        "server": "YOUR_SERVER",
+        "path": "C:/Program Files/MetaTrader 5/terminal64.exe"
+    }
+}
