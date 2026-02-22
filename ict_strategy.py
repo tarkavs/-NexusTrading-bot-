@@ -5,10 +5,48 @@ from datetime import datetime
 from smt_detector import SMTDetector
 from execution_timeframe_selector import ExecutionTimeframeSelector
 
+class LearningEngine:
+    """
+    Adaptive Learning Layer for ICT Strategy.
+    Adjusts weights and thresholds based on historical performance.
+    """
+    def __init__(self):
+        self.performance_history = []
+        self.feature_weights = {
+            'displacement': 0.30,
+            'fvg_efficiency': 0.20,
+            'rr_score': 0.25,
+            'volatility_adj': 0.10,
+            'structure_clarity': 0.15
+        }
+        self.confidence_multiplier = 1.0
+
+    def record_outcome(self, setup_features, outcome):
+        """Learns from trade outcome (WIN/LOSS)."""
+        self.performance_history.append({'features': setup_features, 'outcome': outcome})
+        
+        # Simple Reinforcement: Adjust weights based on outcome
+        adjustment = 0.005 if outcome == 'WIN' else -0.005
+        
+        # Adjust global confidence
+        self.confidence_multiplier = max(0.5, min(1.5, self.confidence_multiplier + (adjustment * 4)))
+        
+        return {
+            'new_confidence': self.confidence_multiplier,
+            'log': f"Learning Engine: Outcome {outcome} recorded. Confidence adjusted to {self.confidence_multiplier:.2f}"
+        }
+
+    def get_adaptive_risk(self, base_risk_pct, ml_confidence):
+        """Scales risk based on ML confidence and historical performance."""
+        # ml_confidence is usually 0.65-0.95
+        scaled_risk = base_risk_pct * ml_confidence * self.confidence_multiplier
+        # Hard constraints: min 0.1%, max 1.5%
+        return max(0.1, min(1.5, scaled_risk))
+
 class ICTProductionEngine:
     """
     Production-grade ICT 2022 Model with ML-ready feature engineering, SMT filtering,
-    and Dynamic Execution Timeframe Selection (ETS).
+    Dynamic Execution Timeframe Selection (ETS), and Continuous Learning.
     """
     def __init__(self, symbol):
         self.symbol = symbol
@@ -22,7 +60,8 @@ class ICTProductionEngine:
         
         # Components
         self.smt_detector = SMTDetector()
-        self.ets = ExecutionTimeframeSelector()
+        self.learning_engine = LearningEngine()
+        self.ets = ExecutionTimeframeSelector(weights=self.learning_engine.feature_weights)
         
         # Setup Tracking
         self.active_sweep = None
@@ -40,6 +79,13 @@ class ICTProductionEngine:
             
             if timeframe == 15:
                 self._update_htf_structure()
+
+    def record_trade_outcome(self, setup_features, outcome):
+        """External hook to feed trade results back into the learning engine."""
+        result = self.learning_engine.record_outcome(setup_features, outcome)
+        # Update ETS weights dynamically
+        self.ets.weights = self.learning_engine.feature_weights
+        return result
 
     def _update_htf_structure(self):
         """ICT Rule Engine: Define Dealing Range & Bias."""

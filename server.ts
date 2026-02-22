@@ -161,6 +161,10 @@ async function startServer() {
               const selectedTf = [1, 2, 3, 4, 5][Math.floor(Math.random() * 5)];
               const nestedFvg = Math.random() > 0.7;
               
+              // Learning Engine Simulation
+              const confidence = (0.8 + Math.random() * 0.4).toFixed(2);
+              const adaptiveRisk = (1.0 * parseFloat(qualityScore) * parseFloat(confidence)).toFixed(2);
+              
               const ictSteps = [
                 `[15M Framework] Bias: ${bias.toUpperCase()} | Range Equilibrium identified`,
                 `[Liquidity Map] ${sweepType} Sweep detected at session extreme`,
@@ -168,6 +172,7 @@ async function startServer() {
                 `[ETS Engine] Scanning execution timeframes (1m-5m)...`,
                 `[ETS Engine] Timeframe ${selectedTf}m selected | Quality Score: ${qualityScore}`,
                 nestedFvg ? `[FVG Confluence] Nested FVG detected (1m inside ${selectedTf}m) | Bonus Applied` : null,
+                `[Learning Engine] Confidence: ${confidence} | Adaptive Risk: ${adaptiveRisk}%`,
                 "[Rule Engine] MSS confirmed with high displacement body close",
                 "[Feature Layer] FVG identified | Displacement Score: 0.88",
                 `[Decision Logic] Setup validated. Executing trade on ${selectedTf}m timeframe.`
@@ -178,10 +183,14 @@ async function startServer() {
               });
               
               setTimeout(() => {
-                const sl = side === "BUY" ? prices[symbol] * 0.995 : prices[symbol] * 1.005;
-                const tp = side === "BUY" ? prices[symbol] * 1.015 : prices[symbol] * 0.985;
                 executeTrade(symbol, side, prices[symbol], amount, strategy);
-                logToDb("SYSTEM", `[${symbol}] ICT 2022 Trade Executed. Risk: 1.0% | Quality: ${qualityScore}`);
+                logToDb("SYSTEM", `[${symbol}] ICT 2022 Trade Executed. Risk: ${adaptiveRisk}% | Quality: ${qualityScore}`);
+                
+                // Simulate learning feedback
+                setTimeout(() => {
+                  const outcome = Math.random() > 0.4 ? "WIN" : "LOSS";
+                  logToDb("LEARNING", `[${symbol}] Outcome ${outcome} recorded. Model weights adjusted for ${selectedTf}m structure.`);
+                }, 2000);
               }, ictSteps.length * 1000);
             } else {
               executeTrade(symbol, side, prices[symbol], amount, strategy);

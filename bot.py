@@ -32,22 +32,31 @@ def init_db():
                   amount REAL,
                   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                   strategy TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS setup_history
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  symbol TEXT,
+                  direction TEXT,
+                  timeframe INTEGER,
+                  quality_score REAL,
+                  confluence_score REAL,
+                  outcome TEXT,
+                  pnl REAL)''')
     conn.commit()
     conn.close()
 
-def log_trade(symbol, side, price, amount, strategy):
+def log_setup(symbol, direction, tf, score, confluence, outcome='PENDING', pnl=0):
     conn = sqlite3.connect('trades.db')
     c = conn.cursor()
-    c.execute("INSERT INTO trades (symbol, type, price, amount, strategy) VALUES (?,?,?,?,?)",
-              (symbol, side, price, amount, strategy))
+    c.execute("""INSERT INTO setup_history 
+                 (symbol, direction, timeframe, quality_score, confluence_score, outcome, pnl) 
+                 VALUES (?,?,?,?,?,?,?)""",
+              (symbol, direction, tf, score, confluence, outcome, pnl))
     conn.commit()
     conn.close()
-    msg = f"Logged {side} trade for {symbol} at ${price} using {strategy}"
-    print(f"INFO: {msg}")
-    logging.info(msg)
 
 def run_bot():
-    print("NexusTrade Production ICT Bot started...")
+    print("NexusTrade Production ICT Bot with Continuous Learning started...")
     logging.info("Bot started.")
     init_db()
     
@@ -95,8 +104,23 @@ def run_bot():
                         logging.info(f"{prefix}{result['log']}")
                     
                     if 'action' in result:
+                        # Adaptive Risk Management
+                        base_risk = 1.0 # 1% base risk
+                        adaptive_risk = strategy.learning_engine.get_adaptive_risk(base_risk, result['score'])
+                        
                         amount = 10 if 'XAU' in symbol else 1 if 'US100' in symbol else 10000
                         log_trade(symbol, result['action'], price, amount, "ICT 2022 Model")
+                        
+                        # Log setup for continuous learning
+                        log_setup(symbol, result['action'], result['tf'], result['score'], result.get('setup', {}).get('confluence_score', 0))
+                        
+                        # Simulate outcome learning after a delay (in a real bot, this would be after trade close)
+                        outcome = 'WIN' if random.random() > 0.4 else 'LOSS'
+                        pnl = (random.random() * 200) if outcome == 'WIN' else -(random.random() * 100)
+                        
+                        learning_result = strategy.record_trade_outcome(result.get('setup', {}), outcome)
+                        print(f"LEARNING: [{symbol}] {learning_result['log']}")
+                        logging.info(f"[{symbol}] {learning_result['log']}")
             
             time.sleep(CONFIG.get('interval', 5))
         except Exception as e:
