@@ -107,8 +107,13 @@ async function startServer() {
   // Existing Bot Simulation Logic
   let isBotRunning = false;
   let botInterval: NodeJS.Timeout | null = null;
-  const SYMBOLS = ["GBP/USD", "XAU/USD", "EUR/USD"];
-  const prices: Record<string, number> = { "GBP/USD": 1.2650, "XAU/USD": 2045.50, "EUR/USD": 1.0820 };
+  const SYMBOLS = ["GBP/USD", "XAU/USD", "EUR/USD", "US100"];
+  const prices: Record<string, number> = { 
+    "GBP/USD": 1.2650, 
+    "XAU/USD": 2045.50, 
+    "EUR/USD": 1.0820,
+    "US100": 18250.00
+  };
 
   const logToDb = (level: string, message: string) => {
     db.run("INSERT INTO logs (level, message) VALUES (?, ?)", [level, message], (err) => {
@@ -136,7 +141,7 @@ async function startServer() {
       botInterval = setInterval(() => {
         SYMBOLS.forEach(symbol => {
           // Volatility simulation
-          const volatility = symbol === "XAU/USD" ? 0.0015 : 0.0008;
+          const volatility = symbol === "XAU/USD" ? 0.0015 : symbol === "US100" ? 0.0025 : 0.0008;
           prices[symbol] *= (1 + (Math.random() - 0.5) * volatility);
           
           io.emit("price_update", { symbol, price: prices[symbol] });
@@ -144,32 +149,40 @@ async function startServer() {
           // Strategy simulation
           if (Math.random() > 0.98) {
             const side = Math.random() > 0.5 ? "BUY" : "SELL";
-            const amount = symbol === "XAU/USD" ? 10 : 10000;
+            const amount = symbol === "XAU/USD" ? 10 : symbol === "US100" ? 1 : 10000;
             const strategies = ["Neural Trend", "ICT 2022 Model", "Liquidity Sweep"];
             const strategy = strategies[Math.floor(Math.random() * strategies.length)];
             
             if (strategy === "ICT 2022 Model") {
               const bias = Math.random() > 0.5 ? "Premium" : "Discount";
               const sweepType = side === "SELL" ? "Buy-side" : "Sell-side";
+              const qualityScore = (0.65 + Math.random() * 0.3).toFixed(2);
+              const smtDivergence = Math.random() > 0.5;
+              const selectedTf = [1, 2, 3, 4, 5][Math.floor(Math.random() * 5)];
+              const nestedFvg = Math.random() > 0.7;
               
               const ictSteps = [
-                `15M Framework: Bias is ${bias}`,
-                `15M Framework: ${sweepType} Liquidity Sweep detected`,
-                "LTF: Market Structure Shift (MSS) with displacement",
-                "LTF: Fair Value Gap (FVG) identified in the displacement leg",
-                "Execution: Retracement to FVG entry zone"
-              ];
+                `[15M Framework] Bias: ${bias.toUpperCase()} | Range Equilibrium identified`,
+                `[Liquidity Map] ${sweepType} Sweep detected at session extreme`,
+                symbol === "US100" ? (smtDivergence ? `[SMT Confluence] Divergence confirmed with US500 | Strength: 0.92` : `[SMT Confluence] No divergence detected | Proceeding with structural bias`) : null,
+                `[ETS Engine] Scanning execution timeframes (1m-5m)...`,
+                `[ETS Engine] Timeframe ${selectedTf}m selected | Quality Score: ${qualityScore}`,
+                nestedFvg ? `[FVG Confluence] Nested FVG detected (1m inside ${selectedTf}m) | Bonus Applied` : null,
+                "[Rule Engine] MSS confirmed with high displacement body close",
+                "[Feature Layer] FVG identified | Displacement Score: 0.88",
+                `[Decision Logic] Setup validated. Executing trade on ${selectedTf}m timeframe.`
+              ].filter(Boolean);
               
               ictSteps.forEach((step, i) => {
-                setTimeout(() => logToDb("INFO", `[${symbol}] ${step}`), i * 800);
+                setTimeout(() => logToDb("INFO", `[${symbol}] ${step}`), i * 1000);
               });
               
               setTimeout(() => {
                 const sl = side === "BUY" ? prices[symbol] * 0.995 : prices[symbol] * 1.005;
                 const tp = side === "BUY" ? prices[symbol] * 1.015 : prices[symbol] * 0.985;
                 executeTrade(symbol, side, prices[symbol], amount, strategy);
-                logToDb("SYSTEM", `[${symbol}] ICT Trade Active. SL: ${sl.toFixed(4)} | TP: ${tp.toFixed(4)}`);
-              }, ictSteps.length * 800);
+                logToDb("SYSTEM", `[${symbol}] ICT 2022 Trade Executed. Risk: 1.0% | Quality: ${qualityScore}`);
+              }, ictSteps.length * 1000);
             } else {
               executeTrade(symbol, side, prices[symbol], amount, strategy);
             }

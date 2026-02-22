@@ -4,7 +4,7 @@ import time
 import json
 import os
 import logging
-from ict_strategy import ICT2022Strategy
+from ict_strategy import ICTProductionEngine
 
 # Ensure logs directory exists
 if not os.path.exists('logs'):
@@ -47,37 +47,55 @@ def log_trade(symbol, side, price, amount, strategy):
     logging.info(msg)
 
 def run_bot():
-    print("NexusTrade ICT Bot started...")
+    print("NexusTrade Production ICT Bot started...")
     logging.info("Bot started.")
     init_db()
     
     # Initialize strategies for each symbol
     strategies = {
-        'GBP/USD': ICT2022Strategy('GBP/USD'),
-        'XAU/USD': ICT2022Strategy('XAU/USD'),
-        'EUR/USD': ICT2022Strategy('EUR/USD')
+        'GBP/USD': ICTProductionEngine('GBP/USD'),
+        'XAU/USD': ICTProductionEngine('XAU/USD'),
+        'EUR/USD': ICTProductionEngine('EUR/USD'),
+        'US100': ICTProductionEngine('US100')
     }
-    
-    # Set some mock daily levels
-    strategies['XAU/USD'].set_daily_levels(2055.0, 2035.0)
     
     while True:
         try:
             import random
             for symbol, strategy in strategies.items():
                 # Mock price simulation
-                base_price = 1.2650 if 'GBP' in symbol else 2045.50 if 'XAU' in symbol else 1.0820
-                price = base_price + (random.random() - 0.5) * (base_price * 0.01)
+                if 'GBP' in symbol: base_price = 1.2650
+                elif 'XAU' in symbol: base_price = 2045.50
+                elif 'EUR' in symbol: base_price = 1.0820
+                elif 'US100' in symbol: base_price = 18250.00
+                else: base_price = 100.00
                 
-                result = strategy.analyze(price)
+                price = base_price + (random.random() - 0.5) * (base_price * 0.005)
+                
+                # Simulate secondary instrument for SMT (e.g., US500 if primary is US100)
+                secondary_price = price * 0.25 + (random.random() - 0.5) * 10 
+                
+                # Update data layer for multiple timeframes
+                strategy.update_data(price, 1) # 1m always updated
+                
+                # Simulate other timeframes (2m, 3m, 4m, 5m, 15m)
+                if random.random() > 0.5: strategy.update_data(price, 2)
+                if random.random() > 0.6: strategy.update_data(price, 3)
+                if random.random() > 0.7: strategy.update_data(price, 4)
+                if random.random() > 0.8: strategy.update_data(price, 5)
+                if random.random() > 0.9: strategy.update_data(price, 15)
+                
+                # SMT is an added confluence, especially for US100
+                result = strategy.detect_setup(price, secondary_price=secondary_price)
                 
                 if result:
                     if 'log' in result:
-                        print(f"STRATEGY: {result['log']}")
-                        logging.info(result['log'])
+                        prefix = f"[{symbol}] "
+                        print(f"STRATEGY: {prefix}{result['log']}")
+                        logging.info(f"{prefix}{result['log']}")
                     
                     if 'action' in result:
-                        amount = 10 if 'XAU' in symbol else 10000
+                        amount = 10 if 'XAU' in symbol else 1 if 'US100' in symbol else 10000
                         log_trade(symbol, result['action'], price, amount, "ICT 2022 Model")
             
             time.sleep(CONFIG.get('interval', 5))
