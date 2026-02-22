@@ -163,7 +163,12 @@ async function startServer() {
               
               // Learning Engine Simulation
               const confidence = (0.8 + Math.random() * 0.4).toFixed(2);
-              const adaptiveRisk = (1.0 * parseFloat(qualityScore) * parseFloat(confidence)).toFixed(2);
+              // Adaptive Risk Allocation (0.1% - 0.8%)
+              let risk = 0.1;
+              if (parseFloat(qualityScore) > 0.85) risk = 0.8;
+              else if (parseFloat(qualityScore) > 0.7) risk = 0.4;
+              
+              const adaptiveRisk = (risk * parseFloat(confidence)).toFixed(2);
               
               const ictSteps = [
                 `[15M Framework] Bias: ${bias.toUpperCase()} | Range Equilibrium identified`,

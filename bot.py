@@ -98,18 +98,25 @@ def run_bot():
                 result = strategy.detect_setup(price, secondary_price=secondary_price)
                 
                 if result:
+                    # Session & News Filters
+                    if not strategy.is_in_killzone():
+                        print(f"FILTER: [{symbol}] Outside killzone. Skipping setup.")
+                        continue
+                    if strategy.is_news_event():
+                        print(f"FILTER: [{symbol}] High-impact news detected. Flattening/Skipping.")
+                        continue
+
                     if 'log' in result:
                         prefix = f"[{symbol}] "
                         print(f"STRATEGY: {prefix}{result['log']}")
                         logging.info(f"{prefix}{result['log']}")
                     
                     if 'action' in result:
-                        # Adaptive Risk Management
-                        base_risk = 1.0 # 1% base risk
-                        adaptive_risk = strategy.learning_engine.get_adaptive_risk(base_risk, result['score'])
+                        # Adaptive Risk Management (0.1% - 0.8%)
+                        adaptive_risk = strategy.learning_engine.get_adaptive_risk(result['score'])
                         
                         amount = 10 if 'XAU' in symbol else 1 if 'US100' in symbol else 10000
-                        log_trade(symbol, result['action'], price, amount, "ICT 2022 Model")
+                        log_trade(symbol, result['action'], price, amount, f"ICT 2022 (Risk: {adaptive_risk:.2f}%)")
                         
                         # Log setup for continuous learning
                         log_setup(symbol, result['action'], result['tf'], result['score'], result.get('setup', {}).get('confluence_score', 0))
@@ -119,7 +126,7 @@ def run_bot():
                         pnl = (random.random() * 200) if outcome == 'WIN' else -(random.random() * 100)
                         
                         learning_result = strategy.record_trade_outcome(result.get('setup', {}), outcome)
-                        print(f"LEARNING: [{symbol}] {learning_result['log']}")
+                        print(f"LEARNING: [{symbol}] {learning_result['log']} | Risk was {adaptive_risk:.2f}%")
                         logging.info(f"[{symbol}] {learning_result['log']}")
             
             time.sleep(CONFIG.get('interval', 5))

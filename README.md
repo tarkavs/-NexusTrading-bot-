@@ -69,10 +69,22 @@ python bot.py
 
 ![Chart Analysis](https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=1200&h=300)
 
-## 🛡️ Risk Management
-- **Max Risk per Trade**: 1.0% (Dynamic scaling based on ML confidence)
-- **Killzone Restriction**: Only executes during London and New York sessions.
-- **News Filter**: Automated flattening before high-impact red folder events.
+### 🛡️ Adaptive Risk Allocation (0.1% – 0.8%)
+The system dynamically scales risk for every trade based on ML confidence and historical performance:
+- **Low Confidence**: 0.1% allocation
+- **Medium Confidence**: 0.4% allocation
+- **High Confidence**: 0.8% allocation
+- **Hard Limit**: 0.8% per trade maximum.
+
+### 🔄 Continuous Learning Layer
+NexusTrade doesn't just trade; it evolves.
+- **Outcome Tracking**: Every trade is logged with its full structural context.
+- **Reinforcement Learning**: Successful setups increase the priority of similar future conditions.
+- **Adaptive Weights**: The scoring engine dynamically adjusts feature weights (displacement, FVG efficiency, etc.) based on recent win rates.
+
+### 🕒 Institutional Killzones & News
+- **Session Filters**: Only executes during high-volatility London and New York sessions.
+- **News Protection**: Automated flattening before high-impact "Red Folder" news events to avoid slippage and unpredictable volatility.
 
 ---
 

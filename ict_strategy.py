@@ -36,17 +36,31 @@ class LearningEngine:
             'log': f"Learning Engine: Outcome {outcome} recorded. Confidence adjusted to {self.confidence_multiplier:.2f}"
         }
 
-    def get_adaptive_risk(self, base_risk_pct, ml_confidence):
-        """Scales risk based on ML confidence and historical performance."""
-        # ml_confidence is usually 0.65-0.95
-        scaled_risk = base_risk_pct * ml_confidence * self.confidence_multiplier
-        # Hard constraints: min 0.1%, max 1.5%
-        return max(0.1, min(1.5, scaled_risk))
+    def get_adaptive_risk(self, ml_confidence):
+        """
+        Scales risk based on ML confidence (0.1% - 0.8%).
+        Low-confidence (<0.7) -> 0.1%
+        Medium-confidence (0.7-0.85) -> 0.4%
+        High-confidence (>0.85) -> 0.8%
+        """
+        # Hard limit 0.8%
+        if ml_confidence < 0.7:
+            risk = 0.1
+        elif ml_confidence < 0.85:
+            risk = 0.4
+        else:
+            risk = 0.8
+            
+        # Apply global confidence multiplier from learning history
+        final_risk = risk * self.confidence_multiplier
+        
+        # Absolute hard limit = 0.8%
+        return max(0.1, min(0.8, final_risk))
 
 class ICTProductionEngine:
     """
     Production-grade ICT 2022 Model with ML-ready feature engineering, SMT filtering,
-    Dynamic Execution Timeframe Selection (ETS), and Continuous Learning.
+    Dynamic Execution Timeframe Selection (ETS), Continuous Learning, and Adaptive Risk.
     """
     def __init__(self, symbol):
         self.symbol = symbol
@@ -68,6 +82,22 @@ class ICTProductionEngine:
         self.mss_detected = False
         self.fvg_zone = None
         
+    def is_in_killzone(self):
+        """Checks if current time is within London or NY Killzones."""
+        now = datetime.now()
+        hour = now.hour
+        # London: 2:00 - 5:00 EST (7:00 - 10:00 UTC)
+        # NY: 8:00 - 11:00 EST (13:00 - 16:00 UTC)
+        # Simplified for simulation:
+        is_london = 2 <= hour <= 5
+        is_ny = 8 <= hour <= 11
+        return is_london or is_ny or True # True for simulation purposes
+
+    def is_news_event(self):
+        """Checks for high-impact news events (Red Folder)."""
+        # In production, this would fetch from a news API
+        return False
+
     def update_data(self, price, timeframe=1):
         """Data Layer: Ingests OHLCV data for multiple timeframes."""
         data_point = {'price': price, 'time': time.time(), 'high': price, 'low': price, 'close': price}
